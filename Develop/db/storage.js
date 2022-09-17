@@ -1,48 +1,48 @@
 const util = require('util');
 const fs = require('fs');
 
-const uuidv1 = require('uuid');
+const { v1: uuidv4 } = require('uuid');
 
-const readFileSync = util.promisify(fs.readFile);
-const writeFileSync = util.promisify(fs.writeFile);
+const readFileAsync = util.promisify(fs.readFile);
+const writeFileAsync = util.promisify(fs.writeFile);
 
 class Store {
-    read() {
-        return readFileSync('./db.json', 'utf8')
+  read() {
+    return readFileAsync('db/db.json', 'utf8');
+  }
+
+  write(note) {
+    return writeFileAsync('db/db.json', JSON.stringify(note));
+  }
+
+  getNotes() {
+    return this.read().then((notes) => {
+      let parsedNotes;
+
+      try {
+        parsedNotes = [].concat(JSON.parse(notes));
+      } catch (err) {
+        parsedNotes = [];
+      }
+
+      return parsedNotes;
+    });
+  }
+
+  addNote(note) {
+    const { title, text } = note;
+
+    if (!title || !text) {
+      throw new Error("Note 'title' and 'text' cannot be blank");
     }
 
-    write(note) {
-        return writeFileSync('./db.json', JSON.stringify(note))
-    }
+    const newNote = { title, text, id: uuidv1() };
 
-    getNotes() {
-        return this.read().then((notes) => {
-            let parseNotes;
-
-            try {
-                parseNotes = [].concat(JSON.parse(notes));
-            } catch (err) {
-                parseNotes = [];
-            }
-
-            return parseNotes;
-        });
-    }
-
-    addNotes() {
-        const {title, text} = note;
-         
-        if (!title || !text) {
-            throw new Error("'Title' and 'text' cannot be left blank.");
-        }
-
-        const newNote = {title, text, id: uuidv1()};
-
-        return this.getNotes()
-        .then((notes) => [...notes, newNote])
-        .then((updateNotes) => this.write(updateNotes))
-        .then(() => newNote);
-    }
+    return this.getNotes()
+      .then((notes) => [...notes, newNote])
+      .then((updatedNotes) => this.write(updatedNotes))
+      .then(() => newNote);
+  }
 }
 
 module.exports = new Store();
